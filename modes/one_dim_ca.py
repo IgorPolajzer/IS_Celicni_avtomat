@@ -18,8 +18,7 @@ class OneDimCellularAutomata(BaseScreen):
 
     def _apply_rule(self, left, middle, right):
         neighbourhood_index = int(f"{left}{middle}{right}", 2)
-        ruleset = list(f"{self.RULESET_CODE:08b}")
-        ruleset.reverse()
+        ruleset = f"{self.RULESET_CODE:08b}"[::-1]
         return int(ruleset[neighbourhood_index])
 
     def _next_generation(self):

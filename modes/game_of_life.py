@@ -25,10 +25,14 @@ class GameOfLife(BaseScreen2D):
             for col in range(self.cols):
                 neighbours = self.get_neighbours(row, col)
                 alive = self.grid[row][col] == 1
-                if alive and neighbours in (2, 3):
+                if alive and neighbours in (2, 3): # A live cell wit 2 or 3 neighbours stays alive.
                     new_grid[row][col] = 1
-                elif not alive and neighbours == 3:
+                elif not alive and neighbours == 3: # Dead cell with 3 live neighbours comes to life.
                     new_grid[row][col] = 1
+
+                # Other rules are handled by default since the new grid is empty.
+                # Any live cell with fewer than two live neighbours dies
+                # Any live cell with more than three live neighbours dies
         self.grid = new_grid
 
     def run(self):
