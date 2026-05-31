@@ -10,8 +10,7 @@ class Menu:
     OPTIONS = [
         "1D Cellular Automaton",
         "Game of Life",
-        "Cave Generator",
-        "Element Simulation",
+        "Cave Simulation",
     ]
 
     def __init__(self, width=600, height=400):
@@ -58,9 +57,6 @@ class Menu:
                 screen.blit(label, (90, y))
 
             # Hint
-            hint = hint_font.render("↑ ↓ to navigate   ENTER to select   ESC to quit", True, (60, 60, 80))
-            screen.blit(hint, (self.width // 2 - hint.get_width() // 2, self.height - 40))
-
             pygame.display.flip()
 
             for event in pygame.event.get():
