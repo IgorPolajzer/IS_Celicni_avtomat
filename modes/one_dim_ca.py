@@ -1,68 +1,64 @@
-import random
-import time
 import pygame
 
 from modes.base_screen import BaseScreen
+from modes.rule_input_screen import RuleInputScreen
 
 
 class OneDimCellularAutomata(BaseScreen):
 
+    def __init__(self):
+        super().__init__()
 
-    def rules(self, left, middle, right):
-        neighbourhood = [left, middle, right]
-        # RuleIndex is the decimal form of the (binary) neighbourhood. Used to acces a new cell from the ruleset array.
-        ruleIndex = int(''.join(str(e) for e in neighbourhood), 2)
-        # This converts the rulesetcode (decimal) into an 8 bit number represented as a list
-        ruleset = list('{0:08b}'.format(self.RULESET_CODE))
+    def _reset(self, rule):
+        self.RULESET_CODE = rule
+        self.generation = 0
+        self.cells = [0] * (self.WIDTH // self.CELL_SIZE)
+        self.cells[len(self.cells) // 2] = 1
+        self.screen.fill((255, 255, 255))
+
+    def _apply_rule(self, left, middle, right):
+        neighbourhood_index = int(f"{left}{middle}{right}", 2)
+        ruleset = list(f"{self.RULESET_CODE:08b}")
         ruleset.reverse()
-        # Access the state of the new cell from the ruleset using our index
-        return int(ruleset[ruleIndex])
+        return int(ruleset[neighbourhood_index])
 
+    def _next_generation(self):
+        new_cells = []
+        for i, middle in enumerate(self.cells):
+            left = self.cells[(i - 1) % len(self.cells)]
+            right = self.cells[(i + 1) % len(self.cells)]
+            new_cells.append(self._apply_rule(left, middle, right))
+        self.cells = new_cells
+
+    def _draw_current_generation(self):
+        y = self.CELL_SIZE * self.generation
+        for i, cell in enumerate(self.cells):
+            if cell == 1:
+                x = i * self.CELL_SIZE
+                if self.CELL_SIZE > 1:
+                    pygame.draw.rect(self.screen, (0, 0, 0), [x, y, self.CELL_SIZE, self.CELL_SIZE])
+                else:
+                    self.screen.set_at((x, y), (0, 0, 0))
+        pygame.display.update([0, y, self.WIDTH, self.CELL_SIZE])
+
+    def _screen_is_full(self):
+        return self.CELL_SIZE * self.generation >= self.HEIGHT
 
     def run(self):
-        while not self.done:
-            # Exit.
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.done = True
+        while True:
+            rule = RuleInputScreen(self.WIDTH, self.HEIGHT).run()
+            if rule is None:
+                break
 
-            for i, cell in enumerate(self.cells):
-                if cell == 1:
-                    # If the cell size is a single pixel we can't use rect to draw it
-                    if self.CELL_SIZE > 1:
-                        pygame.draw.rect(self.screen, (0, 0, 0),
-                                         [i * self.CELL_SIZE, self.CELL_SIZE * self.generation, self.CELL_SIZE, self.CELL_SIZE])
-                    else:
-                        self.screen.set_at((i * self.CELL_SIZE, self.CELL_SIZE * self.generation), (0, 0, 0))
+            self._reset(rule)
 
-            # Loop through the cells, grabbing it's neighbours and calculate the subsequent generation
-            newcells = []
-            for i, cell in enumerate(self.cells):
-                # This modular maths wraps the index if were at the edge of the screen
-                left = self.cells[(i - 1) % len(self.cells)]
-                middle = cell
-                right = self.cells[(i + 1) % len(self.cells)]
-                newstate = self.rules(left, middle, right)
-                # We use newcells so we don't overwrite cells while we're still using it
-                newcells.append(newstate)
-            self.cells = newcells
-
-            # If we've filled the screen then pick a new rule and reset everything
-            if (self.CELL_SIZE * self.generation) >= self.HEIGHT:
-                self.RULESET_CODE = random.randint(0, 255)
-                self.generation = 0
-                time.sleep(2)
-                pygame.display.flip()
-                self.screen.fill((255, 255, 255))
-                self.cells = [0 for e in range(self.WIDTH // self.CELL_SIZE)]
-                self.cells[len(self.cells) // 2] = 1
-                print("Current Rule: {0:d} ({0:08b})".format(self.RULESET_CODE))
-            else:
-                # Update only part of the screen so previous generations are left untouched
-                pygame.display.update([0, self.CELL_SIZE * self.generation, self.WIDTH, self.HEIGHT])
+            while not self.done and not self._screen_is_full():
+                self._draw_current_generation()
+                self._next_generation()
                 self.generation += 1
+                self.clock.tick(1000 / self.GENERATION_TIMESTEP)
 
-            # Wait until the next generation
-            self.clock.tick(1000 / self.GENERATION_TIMESTEP)
+            if self.done:
+                break
 
         pygame.quit()
